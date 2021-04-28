@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+    <meta name="keywords" content="Prayer Times Application V 0.3.1" />
+    <meta name="description" content="Prayer Times Application V 0.3.1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="Content-Security-Policy" content="script-src *  'unsafe-inline' http://api.geonames.org;">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin="*" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <style>
+        #list {
+            width: 240px;
+            height: 290px;
+        }
+
+            #prayTable tr td {
+                line-height: 1;
+                padding: 5px;
+            }
+            
+			.leaflet-container a.leaflet-popup-close-button{
+				font-size : 22px;
+				height:22px;
+				width:26px;
+				margin:10px;
+			}
+            
+        /* Set black background color, white text and some padding */
+        footer {
+            background-color: #555;
+            color: white;
+            padding: 15px;
+        }
+        /* On small screens, set height to 'auto' for sidenav and grid */
+        @media screen and (max-width: 767px) {
+            .row.content {
+                height: auto;
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin="*"></script>
+	<script src="calc.js"></script>
+    <title>Prayer Times Application</title>
+</head>
+<body>
+    <div class="container-fluid text-center">
+        <div class="row content">
+            <div class="col-sm-12 text-left">
+
+                <div id="mapid" style="width: 100%; min-height: 400px;"></div>
+                <h4>Prayer Times calculation</h4>
+                <p>
+                    This app is using a new calculation formula. It is part of an ongoing project and as such undergoes 
+                    continues improvement. For those who want to report errors and contribute to the calculations, 
+                    please send an e-mail to muhammed.aycil@gmail.com.
+                </p>
+
+
+                <h4>Calculation is based on below formulas.</h4>
+                <ul>
+                    <li>Elevation Angle: <a href="https://pveducation.org/pvcdrom/properties-of-sunlight/elevation-angle" target="_blank">https://pveducation.org/pvcdrom/properties-of-sunlight/elevation-angle</a> </li>
+                    <li>Solar noon :  <a href="https://www.esrl.noaa.gov/gmd/grad/solcalc/solareqns.PDF" target="_blank">https://www.esrl.noaa.gov/gmd/grad/solcalc/solareqns.PDF</a> </li>
+					<li>Equation Of Time: :  <a href="https://pveducation.org/pvcdrom/properties-of-sunlight/solar-time" target="_blank">https://pveducation.org/pvcdrom/properties-of-sunlight/solar-time</a> </li>		
+                    <li>Declination:  <a href="https://www.pveducation.org/pvcdrom/properties-of-sunlight/declination-angle" target="_blank">https://www.pveducation.org/pvcdrom/properties-of-sunlight/declination-angle</a></li>	
+                </ul>
+				<p>
+				Click for detail <a href='https://github.com/maycil/pray-time/blob/master/README.md' target='_blank'>Prayer Times Calculation</a>
+				</p>
+                <div id="list" style="display:none">
+				<table class='table table-striped' id="prayTable"> 
+					<tr><td>Time</td><td id="time"></td></tr>
+                	<tr><td>Timezone</td><td id="timezone"></td></tr>
+                	<tr><td>Region</td><td id="timezoneId"></td></tr>
+                	<tr><td>Lat/Lng</td><td id="latlng"></td></tr>
+                	<tr><td>Sahar/Sahoor</td><td id="dawnTime"></td></tr>
+                	<tr><td>Fajr Begin</td><td id="fajrBeginTime"></td></tr>
+                	<tr><td>Fajr End</td><td id="fajrEndTime"></td></tr>
+                	<tr><td>Dhuhr</td><td id="dhuhrTime"></td></tr>
+                	<tr><td>Asr</td><td id="asrTime"></td></tr>
+                	<tr><td>Maghrib</td><td id="maghribTime"></td></tr>
+                	<tr><td>Isha</td><td id="ishaTime"></td></tr>
+                	<tr><td>Isha End</td><td id="ishaEndTime"></td></tr>
+                	<tr><td>Prayer Times</td><td id="fullyear"></td></tr>
+				</table>	
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var _map;
+        UserLocation.getLocation(function () {
+            _map = L.map('mapid').setView([UserLocation.latitude, UserLocation.longitude], 10);
+
+            L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>',
+                tileSize: 512,
+                maxZoom: 18,
+                zoomOffset: -1,
+                id: 'mapbox/streets-v11',
+                accessToken: 'YOUR_MAPBOX_ACCESS_TOKEN'
+            }).addTo(_map);
+
+ 
+            var popup = L.popup();
+            _map.on('click', function (e) {
+                console.log(e);
+                if (e.latlng == null) {
+                    e.latlng = { lat: UserLocation.latitude, lng: UserLocation.longitude };
+                }
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function () {
+                    if (this.readyState == 4 && this.status == 200) {
+                        // Typical action to be performed when the document is ready:
+                        var response = JSON.parse(xhttp.responseText);
+                        document.getElementById("time").innerHTML = new Date(response.localTime).toLocaleString();
+                        document.getElementById("latlng").innerHTML = e.latlng.lat.toFixed(3) + " / " +e.latlng.lng.toFixed(3)
+                        document.getElementById("timezoneId").innerHTML = response.ianaTimeId;
+                        document.getElementById("timezone").innerHTML = response.utcOffset;
+                        document.getElementById("fullyear").innerHTML = "<a href='fullyear.htm?latitude=" + e.latlng.lat +
+                            "&longitude=" + e.latlng.lng + 
+                            "&isDaylightSavingTime=" + response.isDaylightSavingTime + 
+                            "&timezone=" + response.utcOffset + 
+                            "&timezoneId=" + response.ianaTimeId +
+                            "&dayCount=30' target='_blank'>Full Month</a>";
+					document.getElementById("fullyear").innerHTML += "&nbsp;&nbsp;|&nbsp;&nbsp;<a href='fullyear.htm?latitude=" + e.latlng.lat +
+                            "&longitude=" + e.latlng.lng + 
+                            "&isDaylightSavingTime=" + response.isDaylightSavingTime + 
+                            "&timezone=" + response.utcOffset + 
+                            "&timezoneId=" + response.ianaTimeId +
+                            "&dayCount=365' target='_blank'>Full Year</a>";
+
+                        calculateTime(e.latlng.lat, e.latlng.lng, response.utcOffset)
+                    }
+                };
+                xhttp.open("GET","https://api.bigdatacloud.net/data/timezone-by-location?latitude=" + e.latlng.lat + 
+                    "&longitude=" + e.latlng.lng + 
+                    "&utcReference=0&key=34a07b71817a4482a686b4a7cfc7b345",true);
+                xhttp.send();
+
+                popup.setLatLng(e.latlng)
+                    .setContent(" <h4>Prayer Times</h4><div id='list'>" + document.getElementById("list").innerHTML + "</div>")
+                    .openOn(_map);
+            });
+
+            _map.fire("click");
+        });
+
+        function calculateTime(latitude, longitude, timezone) { 
+			var declination = PrayTime.declination(new Date());
+			var EoT = PrayTime.equationofTime(new Date());
+            //console.log("EoT ", EoT, new Date());
+            var elevationAngle = PrayTime.elevationAngle(latitude, declination, true);
+            var elevationAngleNight = PrayTime.elevationAngle(latitude, declination, false);
+            var dhuhrtime = PrayTime.dhuhrTime(longitude, EoT, timezone);
+            var sunset = PrayTime.sunSet(dhuhrtime, declination, latitude, elevationAngle, EoT);
+            var sunrise = PrayTime.sunRise(dhuhrtime, declination, latitude, elevationAngle, EoT);
+
+            document.getElementById("dawnTime").innerHTML = PrayTime.dawnTime(dhuhrtime, declination, latitude, elevationAngleNight);
+            document.getElementById("fajrBeginTime").innerHTML = PrayTime.fajrBeginTime(dhuhrtime, declination, latitude, elevationAngleNight);
+            document.getElementById("fajrEndTime").innerHTML = PrayTime.fajrEndTime(sunrise);
+            document.getElementById("dhuhrTime").innerHTML = PrayTime.decimalToHour(dhuhrtime);
+            document.getElementById("asrTime").innerHTML = PrayTime.asrTime(dhuhrtime, declination, latitude, elevationAngle);
+            document.getElementById("maghribTime").innerHTML = PrayTime.maghribTime(sunset);
+            document.getElementById("ishaTime").innerHTML = PrayTime.ishaTime(dhuhrtime, declination, latitude, elevationAngleNight);
+            document.getElementById("ishaEndTime").innerHTML = PrayTime.ishaEndTime(dhuhrtime, declination, latitude, elevationAngleNight);
+        }
+
+    </script>
+
+</body>
+</html>

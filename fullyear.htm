@@ -1,0 +1,118 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+    <meta name="keywords" content="Prayer Times Application V 0.3.1" />
+    <meta name="description" content="Prayer Times Application V 0.3.1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <style>
+        /* Set black background color, white text and some padding */
+        footer {
+            background-color: #555;
+            color: white;
+            padding: 15px;
+        }
+        /* On small screens, set height to 'auto' for sidenav and grid */
+        @media screen and (max-width: 767px) {
+            .row.content {
+                height: auto;
+            }
+        }
+    </style>
+	<script src="calc.js"></script>
+    <title>Prayer Times </title>
+</head>
+<body>
+
+    <div class="container-fluid text-center">
+        <div class="row content">
+            <div class="col-sm-12 text-left">
+                <h3>Prayer Times</h3>
+
+                <b>Information</b>
+                <span id="timezoneId"></span> &nbsp;&nbsp; <span id="timezone"></span>
+
+                <div id="timelist">
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var latitude = parseFloat(urlParams.get('latitude')); 
+        var longitude = parseFloat(urlParams.get('longitude'));
+        var isDaylightSavingTime = urlParams.get('isDaylightSavingTime');
+        var timezone = parseInt(urlParams.get('timezone'));
+        var timezoneId = urlParams.get('timezoneId'); 
+        var dayCount = urlParams.get('dayCount'); 
+        var text = "<table class='table table-striped'>" +
+        "<thead class='thead-light'><tr><th>Date</th>" + 
+        "<th>Sahar/ Sahoor</th>" +
+        "<th>Fajr Begin</th>" +
+        "<th>Fajr End</th>" +
+        "<th>Dhuhr</th>" +
+        "<th>Asr</th>" +
+        "<th>Maghrib</th>" +
+        "<th>Isha</th>" +
+        "<th>Isha End</th>" +
+        "<th>Day Length</th></tr></thead>";
+        var dst = false;
+        if (isDaylightSavingTime == "true") {
+            text = "<h3 style='color:red;'>Please consider for day light saving (DST)!</h3>" + text;
+            dst = true;
+        }
+
+        var now = new Date();
+		var month = 0; 
+		if(dayCount != 365){
+			month = now.getMonth();
+			dayCount = new Date(now.getFullYear(), month+1, 0).getDate();
+        }
+		else {
+			dayCount = now.getFullYear() % 4 == 0 ? 366 : 365;
+		}
+		for (var i = 1; i <= dayCount; i++) {
+            text += calculateTime(latitude, longitude, timezone, new Date(now.getFullYear(), month, i));
+        }
+        text += "</table>";
+        document.getElementById("timelist").innerHTML = text;
+        document.getElementById("timezone").innerHTML = " timezone : " + timezone + " latitude : " + parseFloat(latitude).toFixed(3) + " longitude : " + parseFloat(longitude).toFixed(3);
+        document.getElementById("timezoneId").innerHTML = timezoneId;
+
+
+        function calculateTime(latitude, longitude, timezone, calculateDate, dst) {
+			
+			var declination =  PrayTime.declination(calculateDate);
+			var EoT = PrayTime.equationofTime(calculateDate);
+            var elevationAngle = PrayTime.elevationAngle(latitude, declination, true);
+            var elevationAngleNight = PrayTime.elevationAngle(latitude, declination, false);
+            var dhuhrtime = PrayTime.dhuhrTime(longitude, EoT, timezone);
+            var sunset = PrayTime.sunSet(dhuhrtime, declination, latitude, EoT);
+            var sunrise = PrayTime.sunRise(dhuhrtime, declination, latitude, EoT);
+
+
+            return "<tr><td>" + PrayTime.formatDate(calculateDate) +
+                "</td><td>" + PrayTime.dawnTime(dhuhrtime, declination, latitude) +
+                "</td><td>" + PrayTime.fajrBeginTime(dhuhrtime, declination, latitude) +
+                "</td><td><b>" + PrayTime.fajrEndTime(sunrise) + "</b>" +
+                "</td><td>" + PrayTime.decimalToHour(dhuhrtime) +
+                "</td><td>" + PrayTime.asrTime(dhuhrtime, declination, latitude) +
+                "</td><td><b>" + PrayTime.maghribTime(sunset) + "</b>" +
+                "</td><td>" + PrayTime.ishaTime(dhuhrtime, declination, latitude) +
+                "</td><td>" + PrayTime.ishaEndTime(dhuhrtime, declination, latitude) +
+                "</td><td>" + PrayTime.decimalToHour(sunset - sunrise) +
+                "</td></tr>";
+
+        }
+
+
+
+    </script>
+
+</body>
+</html>
