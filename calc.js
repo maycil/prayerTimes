@@ -172,16 +172,6 @@ var PrayTime =
         var hour = Math.trunc(value);
         var remain = (value - hour) * 60;
         var minute = Math.trunc(remain);
-        var seconds = ((remain - minute) * 60).toFixed(0);
-        if (seconds > 1)
-		{
-            minute = parseInt(minute) + 1;
-			if(minute == 60)
-			{
-				hour = parseInt(hour) + 1;
-				minute = 0;
-			}
-		}
         if (hour.toString().length == 1)
             hour = "0" + hour;
        
